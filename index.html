@@ -1,62 +1,119 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="utf-8" />
-  <title>PWA Starter</title>
-
-  <base href="/" />
-
-  <!-- This meta viewport ensures the webpage's dimensions change according to the device it's on. This is called Responsive Web Design.-->
-  <meta name="viewport"
-    content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0" />
-  <meta name="description" content="This is a PWA Starter app" />
-
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#181818" />
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f3f3f3" />
-
-  <!-- These meta tags are Apple-specific, and set the web application to run in full-screen mode with a black status bar. Learn more at https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariHTMLRef/Articles/MetaTags.html-->
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="PWA Starter" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-
-  <!-- This tag is used by the PWA Starter CLI to identify template projects. Don't remove if you are using the CLI. -->
-  <meta name="pwa-starter-template-identity" content="pwa-starter"/>
-
-  <!-- Imports an icon to represent the document. -->
-  <link rel="icon" href="/assets/icons/icon_24.png" type="image/png" />
-
-  <!-- Imports the manifest to represent the web application. A web app must have a manifest to be a PWA. -->
-  <link rel="manifest" href="manifest.json" />
-
-  <!-- light mode and dark mode CSS -->
-  <link rel="stylesheet" media="(prefers-color-scheme:light)"
-    href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/dist/themes/light.css">
-  <link rel="stylesheet" media="(prefers-color-scheme:dark)"
-    href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/dist/themes/dark.css"
-    onload="document.documentElement.classList.add('sl-theme-dark');">
-
-  <script type="module">
-    import { setBasePath } from '@shoelace-style/shoelace/dist/utilities/base-path.js';
-    setBasePath('https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/');
-  </script>
-
-  <script type="module" src="/src/app-index.ts"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cultural Etiquette Coach</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <meta name="theme-color" content="#21808D">
+    <link rel="manifest" href="manifest.json">
 </head>
-
 <body>
-  <!-- Our app-index web component. This component is defined in src/pages/app-index.ts-->
-  <app-index></app-index>
+    <!-- Permission Dialog -->
+    <div id="permission-dialog" class="modal">
+        <div class="modal-content">
+            <h2>📍 Location Permission</h2>
+            <p>This app needs your location to provide cultural etiquette tips when you approach temples, markets, and other culturally sensitive sites.</p>
+            <div class="flex gap-16">
+                <button class="btn btn--primary" id="grant-permission">Grant Permission</button>
+                <button class="btn btn--secondary" id="deny-permission">Not Now</button>
+            </div>
+        </div>
+    </div>
 
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.onload = () => {
-        navigator.serviceWorker.register(
-          '/sw.js'
-        );
-      }
-    }
-  </script>
+    <!-- Main App Container -->
+    <div id="app" class="app-container hidden">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="flex justify-between items-center">
+                <h1 class="app-title">🌍 Etiquette Coach</h1>
+                <button class="btn btn--secondary btn--sm" id="settings-btn">⚙️</button>
+            </div>
+        </header>
+
+        <!-- Map Container -->
+        <div id="map-container" class="map-container">
+            <div id="map"></div>
+        </div>
+
+        <!-- Etiquette Card -->
+        <div id="etiquette-card" class="etiquette-card hidden">
+            <div class="card-header">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h3 id="site-name" class="site-name"></h3>
+                        <span id="site-category" class="site-category"></span>
+                    </div>
+                    <button class="btn btn--secondary btn--sm" id="close-card">✕</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="dos-section" class="section">
+                    <h4 class="section-title">✅ Do's</h4>
+                    <ul id="dos-list" class="etiquette-list"></ul>
+                </div>
+                <div id="donts-section" class="section">
+                    <h4 class="section-title">❌ Don'ts</h4>
+                    <ul id="donts-list" class="etiquette-list"></ul>
+                </div>
+                <div id="phrases-section" class="section">
+                    <h4 class="section-title">🗣️ Key Phrases</h4>
+                    <ul id="phrases-list" class="phrases-list"></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Drawer -->
+        <div id="settings-drawer" class="settings-drawer hidden">
+            <div class="drawer-content">
+                <div class="drawer-header">
+                    <h3>Settings</h3>
+                    <button class="btn btn--secondary btn--sm" id="close-settings">✕</button>
+                </div>
+                <div class="drawer-body">
+                    <div class="form-group">
+                        <label class="form-label">Distance Radius</label>
+                        <select id="distance-radius" class="form-control">
+                            <option value="100">100 meters</option>
+                            <option value="200" selected>200 meters</option>
+                            <option value="300">300 meters</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Theme</label>
+                        <select id="theme-select" class="form-control">
+                            <option value="light">Light</option>
+                            <option value="dark">Dark</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Test Location</label>
+                        <select id="simulate-location" class="form-control">
+                            <option value="">Select a site to test...</option>
+                        </select>
+                        <button class="btn btn--primary btn--sm mt-8" id="simulate-btn">Simulate Visit</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div id="status-bar" class="status-bar">
+            <span id="location-status">📍 Getting location...</span>
+        </div>
+    </div>
+
+    <!-- Error Dialog -->
+    <div id="error-dialog" class="modal hidden">
+        <div class="modal-content">
+            <h3>⚠️ Error</h3>
+            <p id="error-message"></p>
+            <button class="btn btn--primary" id="close-error">OK</button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="app.js"></script>
 </body>
-
 </html>
